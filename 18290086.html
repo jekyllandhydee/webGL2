@@ -1,0 +1,105 @@
+<html>
+
+<body>
+    <div>
+        Use WASD, left, right, up and down arrow keys to rotate.
+    </div>
+    <canvas id="glcanvas" width="512" height="512"></canvas>
+    <div>
+        <button id="wiresBtn">WIRES</button>
+        <button id="lightingBtn">LIGHTING</button>
+        <button id="texturesNoLightBtn">TEXTURE WITHOUT LIGHTING</button>
+        <button id="texturesLightBtn">TEXTURE WITH LIGHTING</button>
+    </div>
+</body>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+    attribute vec4 vPosition;
+    attribute vec4 vNormal;
+    attribute vec2 vTexCoords;
+    
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+
+    uniform mat3 normalMatrix;
+
+    varying vec3 vertPos, normalInterp;
+    varying vec2 fTexCoords;
+
+    void main() {
+        vec4 pos = modelViewMatrix * vPosition;
+
+        vertPos = vec3(pos) / pos.w;
+
+        normalInterp = vec3(normalMatrix * vNormal.xyz);
+
+        fTexCoords = vTexCoords;
+
+        gl_Position = projectionMatrix * pos;
+    }
+</script>
+
+
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+    
+    uniform vec4 ambientProduct; 
+    uniform vec4 diffuseProduct;
+    uniform vec4 specularProduct;
+    uniform float shininess;
+    uniform int mode;
+
+    uniform vec4 lightDirection;
+
+    varying vec3 vertPos, normalInterp;
+    varying vec2 fTexCoords;
+
+    uniform sampler2D texMap;
+
+    void main() {
+        if(mode == 1) {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        }
+        else {
+            vec4 fColor;
+
+            vec3 N = normalize(normalInterp);
+            vec3 L = normalize(lightDirection.xyz);
+
+            float lambertian = max(dot(N, L), 0.0);
+            vec4 specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+            vec4 ambient = ambientProduct;
+    
+            vec4 diffuse = lambertian * diffuseProduct;
+            
+            if(lambertian > 0.0) {
+
+                vec3 V = normalize(-vertPos);
+                vec3 H = normalize(L + V);
+                float specAngle = max(dot(N, H), 0.0);
+                specular = specularProduct * pow(specAngle, shininess);
+            }
+            fColor = ambient + diffuse + specular;
+            fColor.a = 1.0;
+            if(mode == 2){
+                gl_FragColor = fColor;
+            }
+            else if (mode == 3) {
+                gl_FragColor = texture2D(texMap, fTexCoords);
+            }
+            else if (mode == 4) {
+                gl_FragColor = fColor * texture2D(texMap, fTexCoords);
+            }
+        }
+    }
+</script>
+<script src="common\initShaders.js"></script>
+<script src="common\MV.js"></script>
+<script src="common\webgl-utils.js"></script>
+
+<script src="18290086.js"></script>
+
+
+</html>
